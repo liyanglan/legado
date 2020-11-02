@@ -26,8 +26,8 @@ import io.legado.app.lib.dialogs.*
 import io.legado.app.lib.theme.ATH
 import io.legado.app.lib.theme.primaryTextColor
 import io.legado.app.ui.association.ImportReplaceRuleActivity
-import io.legado.app.ui.filechooser.FileChooserDialog
-import io.legado.app.ui.filechooser.FilePicker
+import io.legado.app.ui.filepicker.FilePicker
+import io.legado.app.ui.filepicker.FilePickerDialog
 import io.legado.app.ui.replace.edit.ReplaceEditActivity
 import io.legado.app.ui.widget.SelectActionBar
 import io.legado.app.ui.widget.recycler.DragSelectTouchHelper
@@ -49,7 +49,8 @@ class ReplaceRuleActivity :
     VMBaseActivity<ReplaceRuleViewModel>(R.layout.activity_replace_rule),
     SearchView.OnQueryTextListener,
     PopupMenu.OnMenuItemClickListener,
-    FileChooserDialog.CallBack,
+    FilePickerDialog.CallBack,
+    SelectActionBar.CallBack,
     ReplaceRuleAdapter.CallBack {
     override val viewModel: ReplaceRuleViewModel
         get() = getViewModel(ReplaceRuleViewModel::class.java)
@@ -107,27 +108,27 @@ class ReplaceRuleActivity :
         search_view.setOnQueryTextListener(this)
     }
 
+    override fun selectAll(selectAll: Boolean) {
+        if (selectAll) {
+            adapter.selectAll()
+        } else {
+            adapter.revertSelection()
+        }
+    }
+
+    override fun revertSelection() {
+        adapter.revertSelection()
+    }
+
+    override fun onClickMainAction() {
+        delSourceDialog()
+    }
+
     private fun initSelectActionView() {
         select_action_bar.setMainActionText(R.string.delete)
         select_action_bar.inflateMenu(R.menu.replace_rule_sel)
         select_action_bar.setOnMenuItemClickListener(this)
-        select_action_bar.setCallBack(object : SelectActionBar.CallBack {
-            override fun selectAll(selectAll: Boolean) {
-                if (selectAll) {
-                    adapter.selectAll()
-                } else {
-                    adapter.revertSelection()
-                }
-            }
-
-            override fun revertSelection() {
-                adapter.revertSelection()
-            }
-
-            override fun onClickMainAction() {
-                delSourceDialog()
-            }
-        })
+        select_action_bar.setCallBack(this)
     }
 
     private fun delSourceDialog() {
@@ -242,18 +243,6 @@ class ReplaceRuleActivity :
 
     override fun onQueryTextSubmit(query: String?): Boolean {
         return false
-    }
-
-    override fun onFilePicked(requestCode: Int, currentPath: String) {
-        when (requestCode) {
-            importRequestCode -> {
-                startActivity<ImportReplaceRuleActivity>("filePath" to currentPath)
-            }
-            exportRequestCode -> viewModel.exportSelection(
-                adapter.getSelection(),
-                File(currentPath)
-            )
-        }
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {

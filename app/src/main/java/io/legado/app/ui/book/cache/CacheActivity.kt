@@ -19,8 +19,8 @@ import io.legado.app.data.entities.BookChapter
 import io.legado.app.data.entities.BookGroup
 import io.legado.app.help.BookHelp
 import io.legado.app.service.help.CacheBook
-import io.legado.app.ui.filechooser.FileChooserDialog
-import io.legado.app.ui.filechooser.FilePicker
+import io.legado.app.ui.filepicker.FilePicker
+import io.legado.app.ui.filepicker.FilePickerDialog
 import io.legado.app.ui.widget.dialog.TextListDialog
 import io.legado.app.utils.*
 import kotlinx.android.synthetic.main.activity_download.*
@@ -33,7 +33,7 @@ import java.util.concurrent.CopyOnWriteArraySet
 
 
 class CacheActivity : VMBaseActivity<CacheViewModel>(R.layout.activity_download),
-    FileChooserDialog.CallBack,
+    FilePickerDialog.CallBack,
     CacheAdapter.CallBack {
     private val exportRequestCode = 32
     private val exportBookPathKey = "exportBookPath"
@@ -202,26 +202,24 @@ class CacheActivity : VMBaseActivity<CacheViewModel>(R.layout.activity_download)
         }
     }
 
-    override fun onFilePicked(requestCode: Int, currentPath: String) {
-        when (requestCode) {
-            exportRequestCode -> {
-                ACache.get(this@CacheActivity).put(exportBookPathKey, currentPath)
-                startExport(currentPath)
-            }
-        }
-    }
-
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         when (requestCode) {
             exportRequestCode -> if (resultCode == Activity.RESULT_OK) {
                 data?.data?.let { uri ->
-                    contentResolver.takePersistableUriPermission(
-                        uri,
-                        Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
-                    )
-                    ACache.get(this@CacheActivity).put(exportBookPathKey, uri.toString())
-                    startExport(uri.toString())
+                    if (uri.isContentPath()) {
+                        contentResolver.takePersistableUriPermission(
+                            uri,
+                            Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                        )
+                        ACache.get(this@CacheActivity).put(exportBookPathKey, uri.toString())
+                        startExport(uri.toString())
+                    } else {
+                        uri.path?.let { path ->
+                            ACache.get(this@CacheActivity).put(exportBookPathKey, path)
+                            startExport(path)
+                        }
+                    }
                 }
             }
 

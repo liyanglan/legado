@@ -23,7 +23,7 @@ import io.legado.app.ui.book.source.manage.BookSourceActivity
 import io.legado.app.ui.config.BackupRestoreUi
 import io.legado.app.ui.config.ConfigActivity
 import io.legado.app.ui.config.ConfigViewModel
-import io.legado.app.ui.filechooser.FileChooserDialog
+import io.legado.app.ui.filepicker.FilePickerDialog
 import io.legado.app.ui.replace.ReplaceRuleActivity
 import io.legado.app.ui.widget.dialog.TextDialog
 import io.legado.app.ui.widget.prefs.NameListPreference
@@ -32,7 +32,7 @@ import io.legado.app.ui.widget.prefs.SwitchPreference
 import io.legado.app.utils.*
 import kotlinx.android.synthetic.main.view_title_bar.*
 
-class MyFragment : BaseFragment(R.layout.fragment_my_config), FileChooserDialog.CallBack {
+class MyFragment : BaseFragment(R.layout.fragment_my_config), FilePickerDialog.CallBack {
 
     override fun onFragmentCreated(view: View, savedInstanceState: Bundle?) {
         setSupportToolbar(toolbar)
@@ -54,10 +54,6 @@ class MyFragment : BaseFragment(R.layout.fragment_my_config), FileChooserDialog.
                 TextDialog.show(childFragmentManager, text, TextDialog.MD)
             }
         }
-    }
-
-    override fun onFilePicked(requestCode: Int, currentPath: String) {
-        BackupRestoreUi.onFilePicked(requestCode, currentPath)
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {

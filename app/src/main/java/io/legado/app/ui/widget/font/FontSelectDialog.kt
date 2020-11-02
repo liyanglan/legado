@@ -20,8 +20,8 @@ import io.legado.app.help.permission.Permissions
 import io.legado.app.help.permission.PermissionsCompat
 import io.legado.app.lib.dialogs.alert
 import io.legado.app.lib.theme.primaryColor
-import io.legado.app.ui.filechooser.FileChooserDialog
-import io.legado.app.ui.filechooser.FilePicker
+import io.legado.app.ui.filepicker.FilePicker
+import io.legado.app.ui.filepicker.FilePickerDialog
 import io.legado.app.utils.*
 import kotlinx.android.synthetic.main.dialog_font_select.*
 import kotlinx.coroutines.Dispatchers.Main
@@ -30,7 +30,7 @@ import java.io.File
 import java.util.*
 
 class FontSelectDialog : BaseDialogFragment(),
-    FileChooserDialog.CallBack,
+    FilePickerDialog.CallBack,
     Toolbar.OnMenuItemClickListener,
     FontAdapter.CallBack {
     private val fontFolderRequestCode = 35485
@@ -204,34 +204,29 @@ class FontSelectDialog : BaseDialogFragment(),
         }
     }
 
-    /**
-     * 字体文件夹
-     */
-    override fun onFilePicked(requestCode: Int, currentPath: String) {
-        when (requestCode) {
-            fontFolderRequestCode -> {
-                putPrefString(PreferKey.fontFolder, currentPath)
-                loadFontFilesByPermission(currentPath)
-            }
-        }
-    }
-
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         when (requestCode) {
             fontFolderRequestCode -> if (resultCode == RESULT_OK) {
                 data?.data?.let { uri ->
-                    putPrefString(PreferKey.fontFolder, uri.toString())
-                    val doc = DocumentFile.fromTreeUri(requireContext(), uri)
-                    if (doc != null) {
-                        context?.contentResolver?.takePersistableUriPermission(
-                            uri,
-                            Intent.FLAG_GRANT_READ_URI_PERMISSION
-                        )
-                        loadFontFiles(doc)
+                    if (uri.toString().isContentPath()) {
+                        putPrefString(PreferKey.fontFolder, uri.toString())
+                        val doc = DocumentFile.fromTreeUri(requireContext(), uri)
+                        if (doc != null) {
+                            context?.contentResolver?.takePersistableUriPermission(
+                                uri,
+                                Intent.FLAG_GRANT_READ_URI_PERMISSION
+                            )
+                            loadFontFiles(doc)
+                        } else {
+                            RealPathUtil.getPath(requireContext(), uri)?.let {
+                                loadFontFilesByPermission(it)
+                            }
+                        }
                     } else {
-                        RealPathUtil.getPath(requireContext(), uri)?.let {
-                            loadFontFilesByPermission(it)
+                        uri.path?.let { path ->
+                            putPrefString(PreferKey.fontFolder, path)
+                            loadFontFilesByPermission(path)
                         }
                     }
                 }

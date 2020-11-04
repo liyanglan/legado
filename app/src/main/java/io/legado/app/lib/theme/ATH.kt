@@ -10,6 +10,7 @@ import android.os.Build
 import android.view.View
 import android.view.View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
 import android.view.WindowInsetsController
+import android.view.WindowManager
 import android.widget.EdgeEffect
 import android.widget.ScrollView
 import androidx.annotation.ColorInt
@@ -39,6 +40,24 @@ object ATH {
             ThemeStorePrefKeys.VALUES_CHANGED,
             -1
         ) > since
+    }
+
+    fun fullScreen(activity: Activity) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            activity.window.setDecorFitsSystemWindows(true)
+        }
+        fullScreenO(activity)
+        activity.window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS)
+    }
+
+    @Suppress("DEPRECATION")
+    private fun fullScreenO(activity: Activity) {
+        activity.window.decorView.systemUiVisibility =
+            View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+        activity.window.clearFlags(
+            WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS
+                    or WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION
+        )
     }
 
     fun setStatusBarColorAuto(activity: Activity, fullScreen: Boolean) {
@@ -78,7 +97,10 @@ object ATH {
                         WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS
                     )
                 } else {
-                    it.setSystemBarsAppearance(0, 0)
+                    it.setSystemBarsAppearance(
+                        0,
+                        WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS
+                    )
                 }
             }
         } else {
@@ -120,7 +142,10 @@ object ATH {
                         WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS
                     )
                 } else {
-                    it.setSystemBarsAppearance(0, 0)
+                    it.setSystemBarsAppearance(
+                        0,
+                        WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS
+                    )
                 }
             }
         } else {

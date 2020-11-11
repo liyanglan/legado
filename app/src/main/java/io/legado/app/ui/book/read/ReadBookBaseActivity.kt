@@ -18,6 +18,7 @@ import io.legado.app.base.VMBaseActivity
 import io.legado.app.constant.PreferKey
 import io.legado.app.data.entities.Bookmark
 import io.legado.app.help.AppConfig
+import io.legado.app.help.LocalConfig
 import io.legado.app.help.ReadBookConfig
 import io.legado.app.help.coroutine.Coroutine
 import io.legado.app.lib.dialogs.*
@@ -32,7 +33,6 @@ import io.legado.app.ui.book.read.config.ClickActionConfigDialog
 import io.legado.app.ui.book.read.config.PaddingConfigDialog
 import io.legado.app.ui.book.source.edit.BookSourceEditActivity
 import io.legado.app.ui.widget.text.AutoCompleteTextView
-import io.legado.app.utils.applyTint
 import io.legado.app.utils.getPrefString
 import io.legado.app.utils.getViewModel
 import io.legado.app.utils.requestInputMethod
@@ -60,6 +60,9 @@ abstract class ReadBookBaseActivity :
 
     override fun onActivityCreated(savedInstanceState: Bundle?) {
         initView()
+        if (LocalConfig.isFirstRead) {
+            showClickRegionalConfig()
+        }
     }
 
     /**
@@ -236,7 +239,7 @@ abstract class ReadBookBaseActivity :
                     }
                 }
                 noButton()
-            }.show().applyTint()
+            }.show()
         }
     }
 
@@ -270,7 +273,7 @@ abstract class ReadBookBaseActivity :
                 }
             }
             noButton()
-        }.show().applyTint().requestInputMethod()
+        }.show().requestInputMethod()
     }
 
     @SuppressLint("InflateParams")
@@ -293,7 +296,7 @@ abstract class ReadBookBaseActivity :
                 }
             }
             cancelButton()
-        }.show().applyTint()
+        }.show()
     }
 
     fun showPageAnimConfig(success: () -> Unit) {

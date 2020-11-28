@@ -42,13 +42,15 @@ class ContentView(context: Context) : FrameLayout(context) {
         }
 
     init {
-        //设置背景防止切换背景时文字重叠
-        setBackgroundColor(context.getCompatColor(R.color.background))
-        inflate(context, R.layout.view_book_page, this)
-        upTipStyle()
-        upStyle()
-        content_text_view.upView = {
-            setProgress(it)
+        if (!isInEditMode) {
+            //设置背景防止切换背景时文字重叠
+            setBackgroundColor(context.getCompatColor(R.color.background))
+            inflate(context, R.layout.view_book_page, this)
+            upTipStyle()
+            upStyle()
+            content_text_view.upView = {
+                setProgress(it)
+            }
         }
     }
 
@@ -111,8 +113,15 @@ class ContentView(context: Context) : FrameLayout(context) {
             bv_footer_left.isInvisible = tipFooterLeft == none || !tv_footer_left.isInvisible
             tv_footer_right.isGone = tipFooterRight == none
             tv_footer_middle.isGone = tipFooterMiddle == none
-            ll_header.isGone = hideHeader
-            ll_footer.isGone = hideFooter
+            ll_header.isGone = when (headerMode) {
+                1 -> false
+                2 -> true
+                else -> !ReadBookConfig.hideStatusBar
+            }
+            ll_footer.isGone = when (footerMode) {
+                1 -> true
+                else -> false
+            }
         }
         tvTitle = when (ReadTipConfig.chapterTitle) {
             ReadTipConfig.tipHeaderLeft -> tv_header_left

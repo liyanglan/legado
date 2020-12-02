@@ -21,6 +21,8 @@ import io.legado.app.base.VMBaseActivity
 import io.legado.app.constant.AppPattern
 import io.legado.app.constant.EventBus
 import io.legado.app.data.entities.BookSource
+import io.legado.app.databinding.ActivityBookSourceBinding
+import io.legado.app.databinding.DialogEditTextBinding
 import io.legado.app.help.IntentDataHelp
 import io.legado.app.help.LocalConfig
 import io.legado.app.lib.dialogs.alert
@@ -37,18 +39,14 @@ import io.legado.app.ui.widget.dialog.TextDialog
 import io.legado.app.ui.widget.recycler.DragSelectTouchHelper
 import io.legado.app.ui.widget.recycler.ItemTouchCallback
 import io.legado.app.ui.widget.recycler.VerticalDivider
-import io.legado.app.ui.widget.text.AutoCompleteTextView
 import io.legado.app.utils.*
-import kotlinx.android.synthetic.main.activity_book_source.*
-import kotlinx.android.synthetic.main.dialog_edit_text.view.*
-import kotlinx.android.synthetic.main.view_search.*
 import org.jetbrains.anko.startActivity
 import org.jetbrains.anko.startActivityForResult
 import org.jetbrains.anko.toast
 import java.io.File
 import java.text.Collator
 
-class BookSourceActivity : VMBaseActivity<BookSourceViewModel>(R.layout.activity_book_source),
+class BookSourceActivity : VMBaseActivity<ActivityBookSourceBinding, BookSourceViewModel>(),
     PopupMenu.OnMenuItemClickListener,
     BookSourceAdapter.CallBack,
     FilePickerDialog.CallBack,
@@ -61,6 +59,7 @@ class BookSourceActivity : VMBaseActivity<BookSourceViewModel>(R.layout.activity
     private val importRequestCode = 132
     private val exportRequestCode = 65
     private lateinit var adapter: BookSourceAdapter
+    private lateinit var searchView: SearchView
     private var bookSourceLiveDate: LiveData<List<BookSource>>? = null
     private var groups = linkedSetOf<String>()
     private var groupMenu: SubMenu? = null
@@ -68,7 +67,12 @@ class BookSourceActivity : VMBaseActivity<BookSourceViewModel>(R.layout.activity
     private var sortAscending = 0
     private var snackBar: Snackbar? = null
 
+    override fun getViewBinding(): ActivityBookSourceBinding {
+        return ActivityBookSourceBinding.inflate(layoutInflater)
+    }
+
     override fun onActivityCreated(savedInstanceState: Bundle?) {
+        searchView = binding.titleBar.findViewById(R.id.search_view)
         initRecyclerView()
         initSearchView()
         initLiveDataBookSource()
@@ -105,65 +109,65 @@ class BookSourceActivity : VMBaseActivity<BookSourceViewModel>(R.layout.activity
             R.id.menu_sort_manual -> {
                 item.isChecked = true
                 sortCheck(0)
-                initLiveDataBookSource(search_view.query?.toString())
+                initLiveDataBookSource(searchView.query?.toString())
             }
             R.id.menu_sort_auto -> {
                 item.isChecked = true
                 sortCheck(1)
-                initLiveDataBookSource(search_view.query?.toString())
+                initLiveDataBookSource(searchView.query?.toString())
             }
             R.id.menu_sort_pin_yin -> {
                 item.isChecked = true
                 sortCheck(2)
-                initLiveDataBookSource(search_view.query?.toString())
+                initLiveDataBookSource(searchView.query?.toString())
             }
             R.id.menu_sort_url -> {
                 item.isChecked = true
                 sortCheck(3)
-                initLiveDataBookSource(search_view.query?.toString())
+                initLiveDataBookSource(searchView.query?.toString())
             }
             R.id.menu_sort_time -> {
                 item.isChecked = true
                 sortCheck(4)
-                initLiveDataBookSource(search_view.query?.toString())
+                initLiveDataBookSource(searchView.query?.toString())
             }
             R.id.menu_enabled_group -> {
-                search_view.setQuery(getString(R.string.enabled), true)
+                searchView.setQuery(getString(R.string.enabled), true)
             }
             R.id.menu_disabled_group -> {
-                search_view.setQuery(getString(R.string.disabled), true)
+                searchView.setQuery(getString(R.string.disabled), true)
             }
             R.id.menu_help -> showHelp()
         }
         if (item.groupId == R.id.source_group) {
-            search_view.setQuery(item.title, true)
+            searchView.setQuery(item.title, true)
         }
         return super.onCompatOptionsItemSelected(item)
     }
 
     private fun initRecyclerView() {
-        ATH.applyEdgeEffectColor(recycler_view)
-        recycler_view.layoutManager = LinearLayoutManager(this)
-        recycler_view.addItemDecoration(VerticalDivider(this))
+        ATH.applyEdgeEffectColor(binding.recyclerView)
+        binding.recyclerView.layoutManager = LinearLayoutManager(this)
+        binding.recyclerView.addItemDecoration(VerticalDivider(this))
         adapter = BookSourceAdapter(this, this)
-        recycler_view.adapter = adapter
+        binding.recyclerView.adapter = adapter
         val itemTouchCallback = ItemTouchCallback(adapter)
         itemTouchCallback.isCanDrag = true
         val dragSelectTouchHelper: DragSelectTouchHelper =
             DragSelectTouchHelper(adapter.initDragSelectTouchHelperCallback()).setSlideArea(16, 50)
-        dragSelectTouchHelper.attachToRecyclerView(recycler_view)
+        dragSelectTouchHelper.attachToRecyclerView(binding.recyclerView)
         // When this page is opened, it is in selection mode
         dragSelectTouchHelper.activeSlideSelect()
         // Note: need judge selection first, so add ItemTouchHelper after it.
-        ItemTouchHelper(itemTouchCallback).attachToRecyclerView(recycler_view)
+        ItemTouchHelper(itemTouchCallback).attachToRecyclerView(binding.recyclerView)
     }
 
     private fun initSearchView() {
-        ATH.setTint(search_view, primaryTextColor)
-        search_view.onActionViewExpanded()
-        search_view.queryHint = getString(R.string.search_book_source)
-        search_view.clearFocus()
-        search_view.setOnQueryTextListener(this)
+        ATH.setTint(searchView, primaryTextColor)
+        searchView.onActionViewExpanded()
+        searchView.queryHint = getString(R.string.search_book_source)
+        searchView.clearFocus()
+        searchView.setOnQueryTextListener(this)
     }
 
     private fun initLiveDataBookSource(searchKey: String? = null) {
@@ -250,10 +254,10 @@ class BookSourceActivity : VMBaseActivity<BookSourceViewModel>(R.layout.activity
     }
 
     private fun initSelectActionBar() {
-        select_action_bar.setMainActionText(R.string.delete)
-        select_action_bar.inflateMenu(R.menu.book_source_sel)
-        select_action_bar.setOnMenuItemClickListener(this)
-        select_action_bar.setCallBack(this)
+        binding.selectActionBar.setMainActionText(R.string.delete)
+        binding.selectActionBar.inflateMenu(R.menu.book_source_sel)
+        binding.selectActionBar.setOnMenuItemClickListener(this)
+        binding.selectActionBar.setCallBack(this)
     }
 
     override fun onMenuItemClick(item: MenuItem?): Boolean {
@@ -275,15 +279,12 @@ class BookSourceActivity : VMBaseActivity<BookSourceViewModel>(R.layout.activity
     @SuppressLint("InflateParams")
     private fun checkSource() {
         alert(titleResource = R.string.search_book_key) {
-            var editText: AutoCompleteTextView? = null
-            customView {
-                layoutInflater.inflate(R.layout.dialog_edit_text, null).apply {
-                    editText = edit_view
-                    edit_view.setText(CheckSource.keyword)
-                }
+            val alertBinding = DialogEditTextBinding.inflate(layoutInflater).apply {
+                editView.setText(CheckSource.keyword)
             }
+            customView = alertBinding.root
             okButton {
-                editText?.text?.toString()?.let {
+                alertBinding.editView.text?.toString()?.let {
                     if (it.isNotEmpty()) {
                         CheckSource.keyword = it
                     }
@@ -297,17 +298,14 @@ class BookSourceActivity : VMBaseActivity<BookSourceViewModel>(R.layout.activity
     @SuppressLint("InflateParams")
     private fun selectionAddToGroups() {
         alert(titleResource = R.string.add_group) {
-            var editText: AutoCompleteTextView? = null
-            customView {
-                layoutInflater.inflate(R.layout.dialog_edit_text, null).apply {
-                    editText = edit_view
-                    edit_view.setHint(R.string.group_name)
-                    edit_view.setFilterValues(groups.toList())
-                    edit_view.dropDownHeight = 180.dp
-                }
+            val alertBinding = DialogEditTextBinding.inflate(layoutInflater).apply {
+                editView.setHint(R.string.group_name)
+                editView.setFilterValues(groups.toList())
+                editView.dropDownHeight = 180.dp
             }
+            customView = alertBinding.root
             okButton {
-                editText?.text?.toString()?.let {
+                alertBinding.editView.text?.toString()?.let {
                     if (it.isNotEmpty()) {
                         viewModel.selectionAddToGroups(adapter.getSelection(), it)
                     }
@@ -320,17 +318,14 @@ class BookSourceActivity : VMBaseActivity<BookSourceViewModel>(R.layout.activity
     @SuppressLint("InflateParams")
     private fun selectionRemoveFromGroups() {
         alert(titleResource = R.string.remove_group) {
-            var editText: AutoCompleteTextView? = null
-            customView {
-                layoutInflater.inflate(R.layout.dialog_edit_text, null).apply {
-                    editText = edit_view
-                    edit_view.setHint(R.string.group_name)
-                    edit_view.setFilterValues(groups.toList())
-                    edit_view.dropDownHeight = 180.dp
-                }
+            val alertBinding = DialogEditTextBinding.inflate(layoutInflater).apply {
+                editView.setHint(R.string.group_name)
+                editView.setFilterValues(groups.toList())
+                editView.dropDownHeight = 180.dp
             }
+            customView = alertBinding.root
             okButton {
-                editText?.text?.toString()?.let {
+                alertBinding.editView.text?.toString()?.let {
                     if (it.isNotEmpty()) {
                         viewModel.selectionRemoveFromGroups(adapter.getSelection(), it)
                     }
@@ -356,19 +351,16 @@ class BookSourceActivity : VMBaseActivity<BookSourceViewModel>(R.layout.activity
             ?.splitNotBlank(",")
             ?.toMutableList() ?: mutableListOf()
         alert(titleResource = R.string.import_book_source_on_line) {
-            var editText: AutoCompleteTextView? = null
-            customView {
-                layoutInflater.inflate(R.layout.dialog_edit_text, null).apply {
-                    editText = edit_view
-                    edit_view.setFilterValues(cacheUrls)
-                    edit_view.delCallBack = {
-                        cacheUrls.remove(it)
-                        aCache.put(importRecordKey, cacheUrls.joinToString(","))
-                    }
+            val alertBinding = DialogEditTextBinding.inflate(layoutInflater).apply {
+                editView.setFilterValues(cacheUrls)
+                editView.delCallBack = {
+                    cacheUrls.remove(it)
+                    aCache.put(importRecordKey, cacheUrls.joinToString(","))
                 }
             }
+            customView = alertBinding.root
             okButton {
-                val text = editText?.text?.toString()
+                val text = alertBinding.editView.text?.toString()
                 text?.let {
                     if (!cacheUrls.contains(it)) {
                         cacheUrls.add(0, it)
@@ -385,7 +377,7 @@ class BookSourceActivity : VMBaseActivity<BookSourceViewModel>(R.layout.activity
         observeEvent<String>(EventBus.CHECK_SOURCE) { msg ->
             snackBar?.setText(msg) ?: let {
                 snackBar = Snackbar
-                    .make(root_view, msg, Snackbar.LENGTH_INDEFINITE)
+                    .make(binding.root, msg, Snackbar.LENGTH_INDEFINITE)
                     .setAction(R.string.cancel) {
                         CheckSource.stop(this)
                     }.apply { show() }
@@ -396,7 +388,7 @@ class BookSourceActivity : VMBaseActivity<BookSourceViewModel>(R.layout.activity
             snackBar = null
             groups.map { group ->
                 if (group.contains("失效")) {
-                    search_view.setQuery("失效", true)
+                    searchView.setQuery("失效", true)
                     toast("发现有失效书源，已为您自动筛选！")
                 }
             }
@@ -404,7 +396,8 @@ class BookSourceActivity : VMBaseActivity<BookSourceViewModel>(R.layout.activity
     }
 
     override fun upCountView() {
-        select_action_bar.upCountView(adapter.getSelection().size, adapter.getActualItemCount())
+        binding.selectActionBar
+            .upCountView(adapter.getSelection().size, adapter.getActualItemCount())
     }
 
     override fun onQueryTextChange(newText: String?): Boolean {
@@ -479,10 +472,10 @@ class BookSourceActivity : VMBaseActivity<BookSourceViewModel>(R.layout.activity
     }
 
     override fun finish() {
-        if (search_view.query.isNullOrEmpty()) {
+        if (searchView.query.isNullOrEmpty()) {
             super.finish()
         } else {
-            search_view.setQuery("", true)
+            searchView.setQuery("", true)
         }
     }
 

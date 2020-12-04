@@ -10,15 +10,18 @@ import io.legado.app.R
 import io.legado.app.base.VMBaseFragment
 import io.legado.app.data.entities.RssSource
 import io.legado.app.databinding.FragmentRssBinding
+import io.legado.app.databinding.ItemRssBinding
 import io.legado.app.lib.theme.ATH
 import io.legado.app.ui.rss.article.RssSortActivity
 import io.legado.app.ui.rss.favorites.RssFavoritesActivity
 import io.legado.app.ui.rss.source.edit.RssSourceEditActivity
 import io.legado.app.ui.rss.source.manage.RssSourceActivity
 import io.legado.app.ui.rss.source.manage.RssSourceViewModel
+import io.legado.app.ui.rss.subscription.SourceSubscription
 import io.legado.app.utils.getViewModel
 import io.legado.app.utils.startActivity
 import io.legado.app.utils.viewbindingdelegate.viewBinding
+import org.jetbrains.anko.sdk27.listeners.onClick
 
 /**
  * 订阅界面
@@ -52,6 +55,15 @@ class RssFragment : VMBaseFragment<RssSourceViewModel>(R.layout.fragment_rss),
         ATH.applyEdgeEffectColor(binding.recyclerView)
         adapter = RssAdapter(requireContext(), this)
         binding.recyclerView.adapter = adapter
+        adapter.addHeaderView {
+            ItemRssBinding.inflate(layoutInflater, it, false).apply {
+                tvName.setText(R.string.source_subscription)
+                ivIcon.setImageResource(R.mipmap.ic_launcher)
+                root.onClick {
+                    startActivity<SourceSubscription>()
+                }
+            }
+        }
     }
 
     private fun initData() {

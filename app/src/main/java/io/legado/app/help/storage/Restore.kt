@@ -134,6 +134,9 @@ object Restore {
             fileToListT<SearchKeyword>(path, "searchHistory.json")?.let {
                 App.db.searchKeywordDao().insert(*it.toTypedArray())
             }
+            fileToListT<RuleSub>(path, "sourceSub.json")?.let {
+                App.db.ruleSubDao().insert(*it.toTypedArray())
+            }
             fileToListT<TxtTocRule>(path, DefaultData.txtTocRuleFileName)?.let {
                 App.db.txtTocRule().insert(*it.toTypedArray())
             }

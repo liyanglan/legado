@@ -44,11 +44,6 @@
 
     </group>
 
-    <item
-        android:id="@+id/menu_add_bookmark"
-        android:title="@string/bookmark_add"
-        app:showAsAction="never" />
-
     <group android:id="@+id/menu_group_login">
         <item
             android:id="@+id/menu_login"
@@ -74,6 +69,11 @@
     <item
         android:id="@+id/menu_page_anim"
         android:title="@string/book_page_anim"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/menu_get_progress"
+        android:title="@string/get_book_progress"
         app:showAsAction="never" />
 
     <item

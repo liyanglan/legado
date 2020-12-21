@@ -9,7 +9,7 @@ import io.legado.app.App
 import io.legado.app.R
 import io.legado.app.base.BaseActivity
 import io.legado.app.base.adapter.ItemViewHolder
-import io.legado.app.base.adapter.SimpleRecyclerAdapter
+import io.legado.app.base.adapter.RecyclerAdapter
 import io.legado.app.data.entities.ReadRecordShow
 import io.legado.app.databinding.ActivityReadRecordBinding
 import io.legado.app.databinding.ItemReadRecordBinding
@@ -92,7 +92,7 @@ class ReadRecordActivity : BaseActivity<ActivityReadRecordBinding>() {
     }
 
     inner class RecordAdapter(context: Context) :
-        SimpleRecyclerAdapter<ReadRecordShow, ItemReadRecordBinding>(context) {
+        RecyclerAdapter<ReadRecordShow, ItemReadRecordBinding>(context) {
 
         override fun getViewBinding(parent: ViewGroup): ItemReadRecordBinding {
             return ItemReadRecordBinding.inflate(inflater, parent, false)
@@ -113,17 +113,22 @@ class ReadRecordActivity : BaseActivity<ActivityReadRecordBinding>() {
         override fun registerListener(holder: ItemViewHolder, binding: ItemReadRecordBinding) {
             binding.apply {
                 ivRemove.onClick {
-                    alert(R.string.delete, R.string.sure_del) {
-                        okButton {
-                            getItem(holder.layoutPosition)?.let {
-                                App.db.readRecordDao.deleteByName(it.bookName)
-                                initData()
-                            }
-                        }
-                        noButton()
-                    }.show()
+                    getItem(holder.layoutPosition)?.let { item ->
+                        sureDelAlert(item)
+                    }
                 }
             }
+        }
+
+        private fun sureDelAlert(item: ReadRecordShow) {
+            alert(R.string.delete) {
+                message = getString(R.string.sure_del_any, item.bookName)
+                okButton {
+                    App.db.readRecordDao.deleteByName(item.bookName)
+                    initData()
+                }
+                noButton()
+            }.show()
         }
 
     }

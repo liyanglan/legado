@@ -17,6 +17,7 @@ import io.legado.app.help.AppConfig
 import io.legado.app.help.coroutine.CompositeCoroutine
 import io.legado.app.model.webBook.WebBook
 import io.legado.app.utils.getPrefBoolean
+import io.legado.app.utils.getPrefString
 import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.ExecutorCoroutineDispatcher
 import kotlinx.coroutines.asCoroutineDispatcher
@@ -38,6 +39,7 @@ class ChangeSourceViewModel(application: Application) : BaseViewModel(applicatio
     private val searchBooks = CopyOnWriteArraySet<SearchBook>()
     private var postTime = 0L
     private val sendRunnable = Runnable { upAdapter() }
+    private val searchGroup get() = App.INSTANCE.getPrefString("searchGroup") ?: ""
 
     @Volatile
     private var searchIndex = -1
@@ -60,13 +62,13 @@ class ChangeSourceViewModel(application: Application) : BaseViewModel(applicatio
 
     fun loadDbSearchBook() {
         execute {
-            App.db.searchBookDao.getByNameAuthorEnable(name, author).let {
+            searchBooks.clear()
+            upAdapter()
+            App.db.searchBookDao.getChangeSourceSearch(name, author, searchGroup).let {
                 searchBooks.addAll(it)
+                searchBooksLiveData.postValue(searchBooks.toList())
                 if (it.size <= 1) {
-                    upAdapter()
                     startSearch()
-                } else {
-                    upAdapter()
                 }
             }
         }
@@ -81,7 +83,7 @@ class ChangeSourceViewModel(application: Application) : BaseViewModel(applicatio
             searchBooksLiveData.postValue(books.sortedBy { it.originOrder })
         } else {
             handler.removeCallbacks(sendRunnable)
-            handler.postDelayed(sendRunnable, 500 - System.currentTimeMillis() + postTime)
+            handler.postDelayed(sendRunnable, 500)
         }
     }
 
@@ -98,7 +100,11 @@ class ChangeSourceViewModel(application: Application) : BaseViewModel(applicatio
     private fun startSearch() {
         execute {
             bookSourceList.clear()
-            bookSourceList.addAll(App.db.bookSourceDao.allEnabled)
+            if (searchGroup.isBlank()) {
+                bookSourceList.addAll(App.db.bookSourceDao.allEnabled)
+            } else {
+                bookSourceList.addAll(App.db.bookSourceDao.getEnabledByGroup(searchGroup))
+            }
             searchStateData.postValue(true)
             initSearchPool()
             for (i in 0 until threadCount) {
@@ -115,10 +121,9 @@ class ChangeSourceViewModel(application: Application) : BaseViewModel(applicatio
             searchIndex++
         }
         val source = bookSourceList[searchIndex]
-        val variableBook = SearchBook()
         val webBook = WebBook(source)
         val task = webBook
-            .searchBook(name, variableBook = variableBook, scope = this, context = searchPool!!)
+            .searchBook(name, scope = this, context = searchPool!!)
             .timeout(60000L)
             .onSuccess(IO) {
                 it.forEach { searchBook ->
@@ -191,7 +196,8 @@ class ChangeSourceViewModel(application: Application) : BaseViewModel(applicatio
             if (key.isNullOrEmpty()) {
                 loadDbSearchBook()
             } else {
-                val items = App.db.searchBookDao.getChangeSourceSearch(name, author, screenKey)
+                val items =
+                    App.db.searchBookDao.getChangeSourceSearch(name, author, screenKey, searchGroup)
                 searchBooks.clear()
                 searchBooks.addAll(items)
                 upAdapter()

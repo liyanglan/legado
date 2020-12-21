@@ -22,7 +22,10 @@ import io.legado.app.ui.book.read.page.provider.ChapterProvider
 import io.legado.app.ui.book.read.page.provider.TextPageFactory
 import io.legado.app.utils.activity
 import io.legado.app.utils.screenshot
+import java.text.BreakIterator
+import java.util.*
 import kotlin.math.abs
+
 
 class ReadView(context: Context, attrs: AttributeSet) :
     FrameLayout(context, attrs),
@@ -74,23 +77,18 @@ class ReadView(context: Context, attrs: AttributeSet) :
     private var firstCharIndex: Int = 0
 
     val slopSquare by lazy { ViewConfiguration.get(context).scaledTouchSlop }
-    private val tlRect = RectF(10F, 10F, width * 0.33f, height * 0.33f)
-    private val tcRect = RectF(width * 0.33f, 10F, width * 0.66f, height * 0.33f)
-    private val trRect = RectF(width * 0.36f, 10F, width - 10f, height * 0.33f)
-    private val mlRect = RectF(10F, height * 0.33f, width * 0.33f, height * 0.66f)
+    private val tlRect = RectF(0f, 0f, width * 0.33f, height * 0.33f)
+    private val tcRect = RectF(width * 0.33f, 0f, width * 0.66f, height * 0.33f)
+    private val trRect = RectF(width * 0.36f, 0f, width - 0f, height * 0.33f)
+    private val mlRect = RectF(0f, height * 0.33f, width * 0.33f, height * 0.66f)
     private val mcRect = RectF(width * 0.33f, height * 0.33f, width * 0.66f, height * 0.66f)
-    private val mrRect = RectF(width * 0.66f, height * 0.33f, width - 10f, height * 0.66f)
-    private val blRect = RectF(10F, height * 0.66f, width * 0.33f, height - 10f)
-    private val bcRect = RectF(width * 0.33f, height * 0.66f, width * 0.66f, height - 10f)
-    private val brRect = RectF(width * 0.66f, height * 0.66f, width - 10f, height - 10f)
-    private val autoPageRect by lazy {
-        Rect()
-    }
-    private val autoPagePint by lazy {
-        Paint().apply {
-            color = context.accentColor
-        }
-    }
+    private val mrRect = RectF(width * 0.66f, height * 0.33f, width - 0f, height * 0.66f)
+    private val blRect = RectF(0f, height * 0.66f, width * 0.33f, height - 0f)
+    private val bcRect = RectF(width * 0.33f, height * 0.66f, width * 0.66f, height - 0f)
+    private val brRect = RectF(width * 0.66f, height * 0.66f, width - 0f, height - 0f)
+    private val autoPageRect by lazy { Rect() }
+    private val autoPagePint by lazy { Paint().apply { color = context.accentColor } }
+    private val boundary by lazy { BreakIterator.getWordInstance(Locale.getDefault()) }
 
     init {
         addView(nextPage)
@@ -105,15 +103,15 @@ class ReadView(context: Context, attrs: AttributeSet) :
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
-        tlRect.set(10F, 10F, width * 0.33f, height * 0.33f)
-        tcRect.set(width * 0.33f, 10F, width * 0.66f, height * 0.33f)
-        trRect.set(width * 0.36f, 10F, width - 10f, height * 0.33f)
-        mlRect.set(10F, height * 0.33f, width * 0.33f, height * 0.66f)
+        tlRect.set(0f, 0f, width * 0.33f, height * 0.33f)
+        tcRect.set(width * 0.33f, 0f, width * 0.66f, height * 0.33f)
+        trRect.set(width * 0.36f, 0f, width - 0f, height * 0.33f)
+        mlRect.set(0f, height * 0.33f, width * 0.33f, height * 0.66f)
         mcRect.set(width * 0.33f, height * 0.33f, width * 0.66f, height * 0.66f)
-        mrRect.set(width * 0.66f, height * 0.33f, width - 10f, height * 0.66f)
-        blRect.set(10F, height * 0.66f, width * 0.33f, height - 10f)
-        bcRect.set(width * 0.33f, height * 0.66f, width * 0.66f, height - 10f)
-        brRect.set(width * 0.66f, height * 0.66f, width - 10f, height - 10f)
+        mrRect.set(width * 0.66f, height * 0.33f, width - 0f, height * 0.66f)
+        blRect.set(0f, height * 0.66f, width * 0.33f, height - 10f)
+        bcRect.set(width * 0.33f, height * 0.66f, width * 0.66f, height - 0f)
+        brRect.set(width * 0.66f, height * 0.66f, width - 0f, height - 0f)
         prevPage.x = -w.toFloat()
         pageDelegate?.setViewSize(w, h)
     }
@@ -244,14 +242,113 @@ class ReadView(context: Context, attrs: AttributeSet) :
     /**
      * 长按选择
      */
-    private fun onLongPress() {
+    private fun onLongPress() = with(curPage.textPage) {
         curPage.selectText(startX, startY) { relativePage, lineIndex, charIndex ->
             isTextSelected = true
             firstRelativePage = relativePage
             firstLineIndex = lineIndex
             firstCharIndex = charIndex
-            curPage.selectStartMoveIndex(firstRelativePage, firstLineIndex, firstCharIndex)
-            curPage.selectEndMoveIndex(firstRelativePage, firstLineIndex, firstCharIndex)
+            var lineStart = lineIndex
+            var lineEnd = lineIndex
+            var start: Int
+            var end: Int
+            if (lineIndex - 1 > 0 && lineIndex + 1 < lineSize) {
+                // 中间行
+                val lineText = with(textLines) {
+                    get(lineIndex - 1).text + get(lineIndex).text + get(lineIndex + 1).text
+                }
+                boundary.setText(lineText)
+                start = boundary.first()
+                end = boundary.next()
+                val cIndex = textLines[lineIndex - 1].text.length + charIndex
+                while (end != BreakIterator.DONE) {
+                    if (cIndex in start until end) {
+                        break
+                    }
+                    start = end
+                    end = boundary.next()
+                }
+                if (start < textLines[lineIndex - 1].text.length) {
+                    lineStart = lineIndex - 1
+                } else {
+                    start -= textLines[lineIndex - 1].text.length
+                }
+                if (end > textLines[lineIndex - 1].text.length + textLines[lineIndex].text.length) {
+                    lineEnd = lineIndex + 1
+                    end = (end - textLines[lineIndex - 1].text.length
+                            - textLines[lineIndex].text.length)
+                } else {
+                    end = end - textLines[lineIndex - 1].text.length - 1
+                }
+            } else if (lineIndex - 1 > 0) {
+                // 尾行
+                val lineText = with(textLines) {
+                    get(lineIndex - 1).text + get(lineIndex).text
+                }
+                boundary.setText(lineText)
+                start = boundary.first()
+                end = boundary.next()
+                val cIndex = textLines[lineIndex - 1].text.length + charIndex
+                while (end != BreakIterator.DONE) {
+                    if (cIndex in start until end) {
+                        break
+                    }
+                    start = end
+                    end = boundary.next()
+                }
+                if (start < textLines[lineIndex - 1].text.length) {
+                    lineStart = lineIndex - 1
+                } else {
+                    start -= textLines[lineIndex - 1].text.length
+                }
+                end = end - textLines[lineIndex - 1].text.length - 1
+            } else if (lineIndex + 1 < lineSize) {
+                // 首行
+                val lineText = with(textLines) {
+                    get(lineIndex).text + get(lineIndex + 1).text
+                }
+                boundary.setText(lineText)
+                start = boundary.first()
+                end = boundary.next()
+                while (end != BreakIterator.DONE) {
+                    if (charIndex in start until end) {
+                        break
+                    }
+                    start = end
+                    end = boundary.next()
+                }
+                if (end > textLines[lineIndex].text.length) {
+                    lineEnd = lineIndex + 1
+                    end -= textLines[lineIndex].text.length
+                } else {
+                    end -= 1
+                }
+            } else {
+                // 单行
+                val lineText = textLines[lineIndex].text
+                boundary.setText(lineText)
+                start = boundary.first()
+                end = boundary.next()
+                while (end != BreakIterator.DONE) {
+                    if (charIndex in start until end) {
+                        break
+                    }
+                    start = end
+                    end = boundary.next()
+                }
+                end -= 1
+            }
+            try {
+                curPage.selectStartMoveIndex(firstRelativePage, lineStart, start)
+                curPage.selectEndMoveIndex(firstRelativePage, lineEnd, end)
+            } catch (e: Exception) {
+                print(
+                    """
+                    curPage.selectStartMoveIndex($firstRelativePage, $lineStart, $start)
+                    curPage.selectEndMoveIndex($firstRelativePage, $lineEnd, $end)
+                """.trimIndent()
+                )
+            }
         }
     }
 
@@ -340,15 +437,15 @@ class ReadView(context: Context, attrs: AttributeSet) :
         curPage.cancelSelect()
     }
 
-    fun fillPage(direction: PageDirection) {
-        when (direction) {
+    fun fillPage(direction: PageDirection): Boolean {
+        return when (direction) {
             PageDirection.PREV -> {
                 pageFactory.moveToPrev(true)
             }
             PageDirection.NEXT -> {
                 pageFactory.moveToNext(true)
             }
-            else -> Unit
+            else -> false
         }
     }
 
@@ -374,28 +471,22 @@ class ReadView(context: Context, attrs: AttributeSet) :
     }
 
     override fun upContent(relativePosition: Int, resetPageOffset: Boolean) {
-        curPage.setContentDescription(pageFactory.curData.textPage.text)
+        curPage.setContentDescription(pageFactory.curPage.text)
         if (isScroll && !callBack.isAutoPage) {
-            curPage.setContent(pageFactory.curData, resetPageOffset)
+            curPage.setContent(pageFactory.curPage, resetPageOffset)
         } else {
             curPage.resetPageOffset()
             when (relativePosition) {
-                -1 -> prevPage.setContent(pageFactory.prevData)
-                1 -> nextPage.setContent(pageFactory.nextData)
+                -1 -> prevPage.setContent(pageFactory.prevPage)
+                1 -> nextPage.setContent(pageFactory.nextPage)
                 else -> {
-                    curPage.setContent(pageFactory.curData)
-                    nextPage.setContent(pageFactory.nextData)
-                    prevPage.setContent(pageFactory.prevData)
+                    curPage.setContent(pageFactory.curPage)
+                    nextPage.setContent(pageFactory.nextPage)
+                    prevPage.setContent(pageFactory.prevPage)
                 }
             }
         }
         callBack.screenOffTimerStart()
-    }
-
-    fun upTipStyle() {
-        curPage.upTipStyle()
-        prevPage.upTipStyle()
-        nextPage.upTipStyle()
     }
 
     fun upStyle() {
@@ -456,5 +547,6 @@ class ReadView(context: Context, attrs: AttributeSet) :
         fun showActionMenu()
         fun screenOffTimerStart()
         fun showTextActionMenu()
+        fun autoPageStop()
     }
 }

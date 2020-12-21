@@ -9,17 +9,16 @@ import androidx.core.os.bundleOf
 import androidx.recyclerview.widget.RecyclerView
 import io.legado.app.R
 import io.legado.app.base.adapter.ItemViewHolder
-import io.legado.app.base.adapter.SimpleRecyclerAdapter
+import io.legado.app.base.adapter.RecyclerAdapter
 import io.legado.app.data.entities.RssSource
 import io.legado.app.databinding.ItemRssSourceBinding
 import io.legado.app.lib.theme.backgroundColor
 import io.legado.app.ui.widget.recycler.DragSelectTouchHelper
 import io.legado.app.ui.widget.recycler.ItemTouchCallback
 import org.jetbrains.anko.sdk27.listeners.onClick
-import java.util.*
 
 class RssSourceAdapter(context: Context, val callBack: CallBack) :
-    SimpleRecyclerAdapter<RssSource, ItemRssSourceBinding>(context),
+    RecyclerAdapter<RssSource, ItemRssSourceBinding>(context),
     ItemTouchCallback.Callback {
 
     private val selected = linkedSetOf<RssSource>()
@@ -49,15 +48,7 @@ class RssSourceAdapter(context: Context, val callBack: CallBack) :
             } else {
                 bundle.keySet().map {
                     when (it) {
-                        "name", "group" ->
-                            if (item.sourceGroup.isNullOrEmpty()) {
-                                cbSource.text = item.sourceName
-                            } else {
-                                cbSource.text =
-                                    String.format("%s (%s)", item.sourceName, item.sourceGroup)
-                            }
                         "selected" -> cbSource.isChecked = selected.contains(item)
-                        "enabled" -> cbSource.isChecked = item.enabled
                     }
                 }
             }
@@ -67,22 +58,26 @@ class RssSourceAdapter(context: Context, val callBack: CallBack) :
     override fun registerListener(holder: ItemViewHolder, binding: ItemRssSourceBinding) {
         binding.apply {
             swtEnabled.setOnCheckedChangeListener { view, checked ->
-                getItem(holder.layoutPosition)?.let {
-                    if (view.isPressed) {
-                        it.enabled = checked
-                        callBack.update(it)
+                if (view.isPressed) {
+                    getItem(holder.layoutPosition)?.let {
+                        if (view.isPressed) {
+                            it.enabled = checked
+                            callBack.update(it)
+                        }
                     }
                 }
             }
             cbSource.setOnCheckedChangeListener { view, checked ->
-                getItem(holder.layoutPosition)?.let {
-                    if (view.isPressed) {
-                        if (checked) {
-                            selected.add(it)
-                        } else {
-                            selected.remove(it)
+                if (view.isPressed) {
+                    getItem(holder.layoutPosition)?.let {
+                        if (view.isPressed) {
+                            if (checked) {
+                                selected.add(it)
+                            } else {
+                                selected.remove(it)
+                            }
+                            callBack.upCountView()
                         }
-                        callBack.upCountView()
                     }
                 }
             }
@@ -95,6 +90,10 @@ class RssSourceAdapter(context: Context, val callBack: CallBack) :
                 showMenu(ivMenuMore, holder.layoutPosition)
             }
         }
+    }
+
+    override fun onCurrentListChanged() {
+        callBack.upCountView()
     }
 
     fun selectAll() {
@@ -142,7 +141,7 @@ class RssSourceAdapter(context: Context, val callBack: CallBack) :
         popupMenu.show()
     }
 
-    override fun onMove(srcPosition: Int, targetPosition: Int): Boolean {
+    override fun swap(srcPosition: Int, targetPosition: Int): Boolean {
         val srcItem = getItem(srcPosition)
         val targetItem = getItem(targetPosition)
         if (srcItem != null && targetItem != null) {
@@ -156,8 +155,7 @@ class RssSourceAdapter(context: Context, val callBack: CallBack) :
                 movedItems.add(targetItem)
             }
         }
-        Collections.swap(getItems(), srcPosition, targetPosition)
-        notifyItemMoved(srcPosition, targetPosition)
+        swapItem(srcPosition, targetPosition)
         return true
     }
 
@@ -170,8 +168,8 @@ class RssSourceAdapter(context: Context, val callBack: CallBack) :
         }
     }
 
-    fun initDragSelectTouchHelperCallback(): DragSelectTouchHelper.Callback {
-        return object : DragSelectTouchHelper.AdvanceCallback<RssSource>(Mode.ToggleAndReverse) {
+    val dragSelectCallback: DragSelectTouchHelper.Callback =
+        object : DragSelectTouchHelper.AdvanceCallback<RssSource>(Mode.ToggleAndReverse) {
             override fun currentSelectedId(): MutableSet<RssSource> {
                 return selected
             }
@@ -194,7 +192,6 @@ class RssSourceAdapter(context: Context, val callBack: CallBack) :
                 return false
             }
         }
-    }
 
     interface CallBack {
         fun del(source: RssSource)

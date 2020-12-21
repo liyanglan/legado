@@ -11,7 +11,6 @@ import androidx.appcompat.widget.PopupMenu
 import androidx.appcompat.widget.SearchView
 import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.LiveData
-import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import io.legado.app.App
@@ -40,8 +39,6 @@ import org.jetbrains.anko.startActivity
 import org.jetbrains.anko.startActivityForResult
 import org.jetbrains.anko.toast
 import java.io.File
-import java.text.Collator
-import java.util.*
 
 
 class RssSourceActivity : VMBaseActivity<ActivityRssSourceBinding, RssSourceViewModel>(),
@@ -123,13 +120,11 @@ class RssSourceActivity : VMBaseActivity<ActivityRssSourceBinding, RssSourceView
         binding.recyclerView.addItemDecoration(VerticalDivider(this))
         adapter = RssSourceAdapter(this, this)
         binding.recyclerView.adapter = adapter
-
-        val dragSelectTouchHelper: DragSelectTouchHelper =
-            DragSelectTouchHelper(adapter.initDragSelectTouchHelperCallback()).setSlideArea(16, 50)
-        dragSelectTouchHelper.attachToRecyclerView(binding.recyclerView)
         // When this page is opened, it is in selection mode
+        val dragSelectTouchHelper: DragSelectTouchHelper =
+            DragSelectTouchHelper(adapter.dragSelectCallback).setSlideArea(16, 50)
+        dragSelectTouchHelper.attachToRecyclerView(binding.recyclerView)
         dragSelectTouchHelper.activeSlideSelect()
-
         // Note: need judge selection first, so add ItemTouchHelper after it.
         val itemTouchCallback = ItemTouchCallback(adapter)
         itemTouchCallback.isCanDrag = true
@@ -195,12 +190,13 @@ class RssSourceActivity : VMBaseActivity<ActivityRssSourceBinding, RssSourceView
         }.show()
     }
 
-    private fun upGroupMenu() {
-        groupMenu?.removeGroup(R.id.source_group)
-        groups.sortedWith(Collator.getInstance(Locale.CHINESE))
-            .map {
-                groupMenu?.add(R.id.source_group, Menu.NONE, Menu.NONE, it)
-            }
+    private fun upGroupMenu() = groupMenu?.let { menu ->
+        menu.removeGroup(R.id.source_group)
+        groups.sortedWith { o1, o2 ->
+            o1.cnCompare(o2)
+        }.map {
+            menu.add(R.id.source_group, Menu.NONE, Menu.NONE, it)
+        }
     }
 
     private fun initLiveDataSource(key: String? = null) {
@@ -212,10 +208,7 @@ class RssSourceActivity : VMBaseActivity<ActivityRssSourceBinding, RssSourceView
                 App.db.rssSourceDao.liveSearch("%$key%")
             }
         sourceLiveData?.observe(this, {
-            val diffResult = DiffUtil
-                .calculateDiff(DiffCallBack(adapter.getItems(), it))
-            adapter.setItems(it, diffResult)
-            upCountView()
+            adapter.setItems(it)
         })
     }
 
@@ -227,7 +220,7 @@ class RssSourceActivity : VMBaseActivity<ActivityRssSourceBinding, RssSourceView
     override fun upCountView() {
         binding.selectActionBar.upCountView(
             adapter.getSelection().size,
-            adapter.getActualItemCount()
+            adapter.itemCount
         )
     }
 

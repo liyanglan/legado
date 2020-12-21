@@ -11,7 +11,6 @@ import androidx.appcompat.widget.PopupMenu
 import androidx.appcompat.widget.SearchView
 import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.LiveData
-import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.material.snackbar.Snackbar
@@ -44,7 +43,6 @@ import org.jetbrains.anko.startActivity
 import org.jetbrains.anko.startActivityForResult
 import org.jetbrains.anko.toast
 import java.io.File
-import java.text.Collator
 
 class BookSourceActivity : VMBaseActivity<ActivityBookSourceBinding, BookSourceViewModel>(),
     PopupMenu.OnMenuItemClickListener,
@@ -153,14 +151,14 @@ class BookSourceActivity : VMBaseActivity<ActivityBookSourceBinding, BookSourceV
         binding.recyclerView.addItemDecoration(VerticalDivider(this))
         adapter = BookSourceAdapter(this, this)
         binding.recyclerView.adapter = adapter
-        val itemTouchCallback = ItemTouchCallback(adapter)
-        itemTouchCallback.isCanDrag = true
-        val dragSelectTouchHelper: DragSelectTouchHelper =
-            DragSelectTouchHelper(adapter.initDragSelectTouchHelperCallback()).setSlideArea(16, 50)
-        dragSelectTouchHelper.attachToRecyclerView(binding.recyclerView)
         // When this page is opened, it is in selection mode
+        val dragSelectTouchHelper =
+            DragSelectTouchHelper(adapter.dragSelectCallback).setSlideArea(16, 50)
+        dragSelectTouchHelper.attachToRecyclerView(binding.recyclerView)
         dragSelectTouchHelper.activeSlideSelect()
         // Note: need judge selection first, so add ItemTouchHelper after it.
+        val itemTouchCallback = ItemTouchCallback(adapter)
+        itemTouchCallback.isCanDrag = true
         ItemTouchHelper(itemTouchCallback).attachToRecyclerView(binding.recyclerView)
     }
 
@@ -208,10 +206,7 @@ class BookSourceActivity : VMBaseActivity<ActivityBookSourceBinding, BookSourceV
                     Sort.Update -> data.sortedBy { it.lastUpdateTime }
                     else -> data.reversed()
                 }
-            val diffResult = DiffUtil
-                .calculateDiff(DiffCallBack(ArrayList(adapter.getItems()), sourceList))
-            adapter.setItems(sourceList, diffResult)
-            upCountView()
+            adapter.setItems(sourceList)
         })
     }
 
@@ -340,12 +335,13 @@ class BookSourceActivity : VMBaseActivity<ActivityBookSourceBinding, BookSourceV
         }.show()
     }
 
-    private fun upGroupMenu() {
-        groupMenu?.removeGroup(R.id.source_group)
-        groups.sortedWith(Collator.getInstance(java.util.Locale.CHINESE))
-            .map {
-                groupMenu?.add(R.id.source_group, Menu.NONE, Menu.NONE, it)
-            }
+    private fun upGroupMenu() = groupMenu?.let { menu ->
+        menu.removeGroup(R.id.source_group)
+        groups.sortedWith { o1, o2 ->
+            o1.cnCompare(o2)
+        }.map {
+            menu.add(R.id.source_group, Menu.NONE, Menu.NONE, it)
+        }
     }
 
     @SuppressLint("InflateParams")
@@ -402,7 +398,7 @@ class BookSourceActivity : VMBaseActivity<ActivityBookSourceBinding, BookSourceV
 
     override fun upCountView() {
         binding.selectActionBar
-            .upCountView(adapter.getSelection().size, adapter.getActualItemCount())
+            .upCountView(adapter.getSelection().size, adapter.itemCount)
     }
 
     override fun onQueryTextChange(newText: String?): Boolean {

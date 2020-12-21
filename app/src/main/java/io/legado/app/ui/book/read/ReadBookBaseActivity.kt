@@ -24,7 +24,6 @@ import io.legado.app.lib.dialogs.selector
 import io.legado.app.lib.theme.ATH
 import io.legado.app.lib.theme.ThemeStore
 import io.legado.app.lib.theme.backgroundColor
-import io.legado.app.lib.theme.bottomBackground
 import io.legado.app.service.help.CacheBook
 import io.legado.app.service.help.ReadBook
 import io.legado.app.ui.book.read.config.BgTextConfigDialog
@@ -78,7 +77,7 @@ abstract class ReadBookBaseActivity :
      */
     @SuppressLint("SourceLockedOrientationActivity")
     fun setOrientation() {
-        when (AppConfig.requestedDirection) {
+        when (AppConfig.screenOrientation) {
             "0" -> requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
             "1" -> requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
             "2" -> requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
@@ -144,10 +143,12 @@ abstract class ReadBookBaseActivity :
 
     override fun upNavigationBarColor() {
         when {
-            binding.readMenu.isVisible -> ATH.setNavigationBarColorAuto(this)
-            bottomDialog > 0 -> ATH.setNavigationBarColorAuto(this, bottomBackground)
-            else -> {
+            binding.readMenu.isVisible -> super.upNavigationBarColor()
+            bottomDialog > 0 -> super.upNavigationBarColor()
+            else -> if (AppConfig.immNavigationBar) {
                 ATH.setNavigationBarColorAuto(this, Color.TRANSPARENT)
+            } else {
+                ATH.setNavigationBarColorAuto(this, Color.parseColor("#20000000"))
             }
         }
     }
@@ -198,26 +199,19 @@ abstract class ReadBookBaseActivity :
     }
 
     @SuppressLint("InflateParams")
-    fun showBookMark() {
+    fun showBookMark(bookmark: Bookmark) {
         val book = ReadBook.book ?: return
         val textChapter = ReadBook.curTextChapter ?: return
         alert(title = getString(R.string.bookmark_add)) {
             val alertBinding = DialogEditTextBinding.inflate(layoutInflater).apply {
                 editView.setHint(R.string.note_content)
             }
-            message = book.name + " • " + textChapter.title
+            message = bookmark.bookText
             customView = alertBinding.root
             yesButton {
                 alertBinding.editView.text?.toString()?.let { editContent ->
                     Coroutine.async {
-                        val bookmark = Bookmark(
-                            bookUrl = book.bookUrl,
-                            bookName = book.name,
-                            chapterIndex = ReadBook.durChapterIndex,
-                            pageIndex = ReadBook.durChapterPos,
-                            chapterName = textChapter.title,
-                            content = editContent
-                        )
+                        bookmark.content = editContent
                         App.db.bookmarkDao.insert(bookmark)
                     }
                 }

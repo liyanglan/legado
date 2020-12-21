@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <io.legado.app.ui.widget.prefs.NameListPreference
-        android:key="@string/pk_requested_direction"
+        android:key="screenOrientation"
         android:defaultValue="0"
         android:title="@string/screen_direction"
         android:entries="@array/screen_direction_title"
@@ -77,7 +77,7 @@
         app:isBottomBackground="true" />
 
     <io.legado.app.ui.widget.prefs.SwitchPreference
-        android:defaultValue="false"
+        android:defaultValue="true"
         android:title="@string/selectText"
         android:key="selectText"
         app:iconSpaceReserved="false"

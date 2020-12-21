@@ -13,7 +13,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import io.legado.app.R
 import io.legado.app.base.BaseDialogFragment
 import io.legado.app.base.adapter.ItemViewHolder
-import io.legado.app.base.adapter.SimpleRecyclerAdapter
+import io.legado.app.base.adapter.RecyclerAdapter
 import io.legado.app.constant.PreferKey
 import io.legado.app.data.entities.BookSource
 import io.legado.app.databinding.DialogEditTextBinding
@@ -126,7 +126,7 @@ class ImportBookSourceDialog : BaseDialogFragment(), Toolbar.OnMenuItemClickList
     }
 
     inner class SourcesAdapter(context: Context) :
-        SimpleRecyclerAdapter<BookSource, ItemSourceImportBinding>(context) {
+        RecyclerAdapter<BookSource, ItemSourceImportBinding>(context) {
 
         override fun getViewBinding(parent: ViewGroup): ItemSourceImportBinding {
             return ItemSourceImportBinding.inflate(inflater, parent, false)
@@ -141,12 +141,12 @@ class ImportBookSourceDialog : BaseDialogFragment(), Toolbar.OnMenuItemClickList
             binding.apply {
                 cbSourceName.isChecked = viewModel.selectStatus[holder.layoutPosition]
                 cbSourceName.text = item.bookSourceName
-                tvSourceState.text =
-                    if (viewModel.checkSources[holder.layoutPosition] != null) {
-                        "已存在"
-                    } else {
-                        "新书源"
-                    }
+                val localSource = viewModel.checkSources[holder.layoutPosition]
+                tvSourceState.text = when {
+                    localSource == null -> "新书源"
+                    item.lastUpdateTime > localSource.lastUpdateTime -> "更新"
+                    else -> "已存在"
+                }
             }
 
         }

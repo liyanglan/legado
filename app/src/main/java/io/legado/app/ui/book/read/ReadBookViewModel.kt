@@ -7,10 +7,11 @@ import io.legado.app.R
 import io.legado.app.base.BaseViewModel
 import io.legado.app.data.entities.Book
 import io.legado.app.data.entities.BookChapter
-import io.legado.app.data.entities.SearchBook
+import io.legado.app.data.entities.BookProgress
 import io.legado.app.help.AppConfig
 import io.legado.app.help.BookHelp
 import io.legado.app.help.IntentDataHelp
+import io.legado.app.help.storage.BookWebDav
 import io.legado.app.model.localBook.LocalBook
 import io.legado.app.model.webBook.WebBook
 import io.legado.app.service.BaseReadAloudService
@@ -21,7 +22,6 @@ import kotlinx.coroutines.Dispatchers.Main
 import kotlinx.coroutines.withContext
 
 class ReadBookViewModel(application: Application) : BaseViewModel(application) {
-
     var isInitFinish = false
     var searchContentQuery = ""
 
@@ -65,6 +65,7 @@ class ReadBookViewModel(application: Application) : BaseViewModel(application) {
                 }
                 ReadBook.loadContent(resetPageOffset = true)
             }
+            syncBookProgress(book)
         } else {
             ReadBook.book = book
             if (ReadBook.durChapterIndex != book.durChapterIndex) {
@@ -94,6 +95,9 @@ class ReadBookViewModel(application: Application) : BaseViewModel(application) {
                 } else {
                     ReadBook.loadContent(resetPageOffset = true)
                 }
+            }
+            if (!BaseReadAloudService.isRun) {
+                syncBookProgress(book)
             }
         }
     }
@@ -155,6 +159,27 @@ class ReadBookViewModel(application: Application) : BaseViewModel(application) {
         }
     }
 
+    fun syncBookProgress(
+        book: Book,
+        syncBookProgress: Boolean = AppConfig.syncBookProgress,
+        alertSync: ((progress: BookProgress) -> Unit)? = null
+    ) {
+        if (syncBookProgress)
+            execute {
+                BookWebDav.getBookProgress(book)
+            }.onSuccess {
+                it?.let { progress ->
+                    if (progress.durChapterIndex < book.durChapterIndex ||
+                        (progress.durChapterIndex == book.durChapterIndex && progress.durChapterPos < book.durChapterPos)
+                    ) {
+                        alertSync?.invoke(progress)
+                    } else {
+                        ReadBook.setProgress(progress)
+                    }
+                }
+            }
+    }
+
     fun changeTo(newBook: Book) {
         execute {
             var oldTocSize: Int = newBook.totalChapterNum
@@ -190,9 +215,8 @@ class ReadBookViewModel(application: Application) : BaseViewModel(application) {
         execute {
             App.db.bookSourceDao.allTextEnabled.forEach { source ->
                 try {
-                    val variableBook = SearchBook()
                     WebBook(source)
-                        .searchBookSuspend(this, name, variableBook = variableBook)
+                        .searchBookSuspend(this, name)
                         .getOrNull(0)?.let {
                             if (it.name == name && (it.author == author || author == "")) {
                                 val book = it.toBook()

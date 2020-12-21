@@ -7,11 +7,9 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.appcompat.widget.Toolbar
 import androidx.fragment.app.FragmentManager
-import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.GridLayoutManager
 import io.legado.app.R
 import io.legado.app.base.BaseDialogFragment
-import io.legado.app.constant.Theme
 import io.legado.app.databinding.DialogChangeCoverBinding
 import io.legado.app.lib.theme.primaryColor
 import io.legado.app.utils.applyTint
@@ -90,12 +88,10 @@ class ChangeCoverDialog : BaseDialogFragment(),
             } else {
                 stopMenuItem?.setIcon(R.drawable.ic_refresh_black_24dp)
             }
-            binding.toolBar.menu.applyTint(requireContext(), Theme.getTheme())
+            binding.toolBar.menu.applyTint(requireContext())
         })
         viewModel.searchBooksLiveData.observe(viewLifecycleOwner, {
-            val diffResult = DiffUtil.calculateDiff(DiffCallBack(adapter.getItems(), it))
             adapter.setItems(it)
-            diffResult.dispatchUpdatesTo(adapter)
         })
     }
 

@@ -27,6 +27,7 @@ import kotlinx.coroutines.Dispatchers.Main
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.jetbrains.anko.sdk27.listeners.onClick
+import kotlin.math.min
 
 class ChapterListFragment : VMBaseFragment<ChapterListViewModel>(R.layout.fragment_chapter_list),
     ChapterListAdapter.Callback,
@@ -102,7 +103,7 @@ class ChapterListFragment : VMBaseFragment<ChapterListViewModel>(R.layout.fragme
         launch(IO) {
             adapter.cacheFileNames.addAll(BookHelp.getChapterFiles(book))
             withContext(Main) {
-                adapter.notifyItemRangeChanged(0, adapter.getActualItemCount(), true)
+                adapter.notifyItemRangeChanged(0, adapter.itemCount, true)
             }
         }
     }
@@ -134,7 +135,7 @@ class ChapterListFragment : VMBaseFragment<ChapterListViewModel>(R.layout.fragme
         get() = viewModel.book?.isLocalBook() == true
 
     override fun durChapterIndex(): Int {
-        return durChapterIndex
+        return min(durChapterIndex, adapter.itemCount)
     }
 
     override fun openChapter(bookChapter: BookChapter) {

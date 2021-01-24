@@ -44,13 +44,10 @@
 
     </group>
 
-    <group android:id="@+id/menu_group_login">
-        <item
-            android:id="@+id/menu_login"
-            android:visible="false"
-            android:title="@string/login"
-            app:showAsAction="never" />
-    </group>
+    <item
+        android:id="@+id/menu_add_bookmark"
+        android:title="@string/bookmark_add"
+        app:showAsAction="never" />
 
     <group android:id="@+id/menu_group_on_line_ns">
 

@@ -12,7 +12,6 @@ import androidx.appcompat.widget.SearchView
 import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.LiveData
 import androidx.recyclerview.widget.ItemTouchHelper
-import androidx.recyclerview.widget.LinearLayoutManager
 import io.legado.app.App
 import io.legado.app.R
 import io.legado.app.base.VMBaseActivity
@@ -93,10 +92,11 @@ class RssSourceActivity : VMBaseActivity<ActivityRssSourceBinding, RssSourceView
             R.id.menu_share_source -> viewModel.shareSelection(adapter.getSelection()) {
                 startActivity(Intent.createChooser(it, getString(R.string.share_selected_source)))
             }
+            R.id.menu_import_default -> viewModel.importDefault()
             R.id.menu_help -> showHelp()
             else -> if (item.groupId == R.id.source_group) {
                 binding.titleBar.findViewById<SearchView>(R.id.search_view)
-                    .setQuery(item.title, true)
+                    .setQuery("group:${item.title}", true)
             }
         }
         return super.onCompatOptionsItemSelected(item)
@@ -116,7 +116,6 @@ class RssSourceActivity : VMBaseActivity<ActivityRssSourceBinding, RssSourceView
 
     private fun initRecyclerView() {
         ATH.applyEdgeEffectColor(binding.recyclerView)
-        binding.recyclerView.layoutManager = LinearLayoutManager(this)
         binding.recyclerView.addItemDecoration(VerticalDivider(this))
         adapter = RssSourceAdapter(this, this)
         binding.recyclerView.adapter = adapter
@@ -199,17 +198,24 @@ class RssSourceActivity : VMBaseActivity<ActivityRssSourceBinding, RssSourceView
         }
     }
 
-    private fun initLiveDataSource(key: String? = null) {
+    private fun initLiveDataSource(searchKey: String? = null) {
         sourceLiveData?.removeObservers(this)
-        sourceLiveData =
-            if (key.isNullOrBlank()) {
+        sourceLiveData = when {
+            searchKey.isNullOrBlank() -> {
                 App.db.rssSourceDao.liveAll()
-            } else {
-                App.db.rssSourceDao.liveSearch("%$key%")
             }
-        sourceLiveData?.observe(this, {
-            adapter.setItems(it)
-        })
+            searchKey.startsWith("group:") -> {
+                val key = searchKey.substringAfter("group:")
+                App.db.rssSourceDao.liveGroupSearch("%$key%")
+            }
+            else -> {
+                App.db.rssSourceDao.liveSearch("%$searchKey%")
+            }
+        }.apply {
+            observe(this@RssSourceActivity, {
+                adapter.setItems(it, adapter.diffItemCallback)
+            })
+        }
     }
 
     private fun showHelp() {
@@ -259,13 +265,13 @@ class RssSourceActivity : VMBaseActivity<ActivityRssSourceBinding, RssSourceView
         when (requestCode) {
             importRequestCode -> if (resultCode == Activity.RESULT_OK) {
                 data?.data?.let { uri ->
-                    try {
+                    kotlin.runCatching {
                         uri.readText(this)?.let {
                             val dataKey = IntentDataHelp.putData(it)
                             startActivity<ImportRssSourceActivity>("dataKey" to dataKey)
                         }
-                    } catch (e: Exception) {
-                        toast("readTextError:${e.localizedMessage}")
+                    }.onFailure {
+                        toast("readTextError:${it.localizedMessage}")
                     }
                 }
             }

@@ -62,10 +62,10 @@ class AnalyzeRule(val ruleData: RuleDataInterface) : JsExtensions {
     fun setBaseUrl(baseUrl: String?): AnalyzeRule {
         baseUrl?.let {
             this.baseUrl = baseUrl
-            try {
+            kotlin.runCatching {
                 baseURL = URL(baseUrl.substringBefore(","))
-            } catch (e: Exception) {
-                e.printStackTrace()
+            }.onFailure {
+                it.printStackTrace()
             }
         }
         return this
@@ -229,9 +229,9 @@ class AnalyzeRule(val ruleData: RuleDataInterface) : JsExtensions {
             }
         }
         if (result == null) result = ""
-        val str = try {
+        val str = kotlin.runCatching {
             Entities.unescape(result.toString())
-        } catch (e: Exception) {
+        }.getOrElse {
             result.toString()
         }
         if (isUrl) {
@@ -646,7 +646,9 @@ class AnalyzeRule(val ruleData: RuleDataInterface) : JsExtensions {
         bindings["chapter"] = chapter
         bindings["title"] = chapter?.title
         bindings["src"] = content
-        return SCRIPT_ENGINE.eval(jsStr, bindings)
+        return runBlocking {
+            SCRIPT_ENGINE.eval(jsStr, bindings)
+        }
     }
 
     /**
@@ -654,12 +656,13 @@ class AnalyzeRule(val ruleData: RuleDataInterface) : JsExtensions {
      */
     override fun ajax(urlStr: String): String? {
         return runBlocking {
-            try {
+            kotlin.runCatching {
                 val analyzeUrl = AnalyzeUrl(urlStr, book = book)
                 analyzeUrl.getStrResponse(urlStr).body
-            } catch (e: Exception) {
-                e.printStackTrace()
-                e.msg
+            }.onFailure {
+                it.printStackTrace()
+            }.getOrElse {
+                it.msg
             }
         }
     }

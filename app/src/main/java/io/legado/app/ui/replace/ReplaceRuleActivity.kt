@@ -7,16 +7,17 @@ import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
 import android.view.SubMenu
+import androidx.activity.viewModels
 import androidx.appcompat.widget.PopupMenu
 import androidx.appcompat.widget.SearchView
 import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.LiveData
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
-import io.legado.app.App
 import io.legado.app.R
 import io.legado.app.base.VMBaseActivity
 import io.legado.app.constant.AppPattern
+import io.legado.app.data.appDb
 import io.legado.app.data.entities.ReplaceRule
 import io.legado.app.databinding.ActivityReplaceRuleBinding
 import io.legado.app.databinding.DialogEditTextBinding
@@ -37,9 +38,6 @@ import io.legado.app.ui.widget.recycler.DragSelectTouchHelper
 import io.legado.app.ui.widget.recycler.ItemTouchCallback
 import io.legado.app.ui.widget.recycler.VerticalDivider
 import io.legado.app.utils.*
-import org.jetbrains.anko.startActivity
-import org.jetbrains.anko.startActivityForResult
-import org.jetbrains.anko.toast
 import java.io.File
 
 /**
@@ -51,8 +49,7 @@ class ReplaceRuleActivity : VMBaseActivity<ActivityReplaceRuleBinding, ReplaceRu
     FilePickerDialog.CallBack,
     SelectActionBar.CallBack,
     ReplaceRuleAdapter.CallBack {
-    override val viewModel: ReplaceRuleViewModel
-        get() = getViewModel(ReplaceRuleViewModel::class.java)
+    override val viewModel: ReplaceRuleViewModel by viewModels()
     private val importRecordKey = "replaceRuleRecordKey"
     private val importRequestCode = 132
     private val importRequestCodeQr = 133
@@ -149,14 +146,14 @@ class ReplaceRuleActivity : VMBaseActivity<ActivityReplaceRuleBinding, ReplaceRu
         replaceRuleLiveData?.removeObservers(this)
         replaceRuleLiveData = when {
             searchKey.isNullOrEmpty() -> {
-                App.db.replaceRuleDao.liveDataAll()
+                appDb.replaceRuleDao.liveDataAll()
             }
             searchKey.startsWith("group:") -> {
                 val key = searchKey.substringAfter("group:")
-                App.db.replaceRuleDao.liveDataGroupSearch("%$key%")
+                appDb.replaceRuleDao.liveDataGroupSearch("%$key%")
             }
             else -> {
-                App.db.replaceRuleDao.liveDataSearch("%$searchKey%")
+                appDb.replaceRuleDao.liveDataSearch("%$searchKey%")
             }
         }.apply {
             observe(this@ReplaceRuleActivity, {
@@ -170,7 +167,7 @@ class ReplaceRuleActivity : VMBaseActivity<ActivityReplaceRuleBinding, ReplaceRu
     }
 
     private fun observeGroupData() {
-        App.db.replaceRuleDao.liveGroup().observe(this, {
+        appDb.replaceRuleDao.liveGroup().observe(this, {
             groups.clear()
             it.map { group ->
                 groups.addAll(group.splitNotBlank(AppPattern.splitGroupRegex))
@@ -230,7 +227,7 @@ class ReplaceRuleActivity : VMBaseActivity<ActivityReplaceRuleBinding, ReplaceRu
                     aCache.put(importRecordKey, cacheUrls.joinToString(","))
                 }
             }
-            customView = alertBinding.root
+            customView { alertBinding.root }
             okButton {
                 val text = alertBinding.editView.text?.toString()
                 text?.let {
@@ -238,7 +235,9 @@ class ReplaceRuleActivity : VMBaseActivity<ActivityReplaceRuleBinding, ReplaceRu
                         cacheUrls.add(0, it)
                         aCache.put(importRecordKey, cacheUrls.joinToString(","))
                     }
-                    startActivity<ImportReplaceRuleActivity>("source" to it)
+                    startActivity<ImportReplaceRuleActivity> {
+                        putExtra("source", it)
+                    }
                 }
             }
             cancelButton()
@@ -267,16 +266,20 @@ class ReplaceRuleActivity : VMBaseActivity<ActivityReplaceRuleBinding, ReplaceRu
                     kotlin.runCatching {
                         uri.readText(this)?.let {
                             val dataKey = IntentDataHelp.putData(it)
-                            startActivity<ImportReplaceRuleActivity>("dataKey" to dataKey)
+                            startActivity<ImportReplaceRuleActivity> {
+                                putExtra("dataKey", dataKey)
+                            }
                         }
                     }.onFailure {
-                        toast("readTextError:${it.localizedMessage}")
+                        toastOnUi("readTextError:${it.localizedMessage}")
                     }
                 }
             }
             importRequestCodeQr -> if (resultCode == Activity.RESULT_OK) {
                 data?.getStringExtra("result")?.let {
-                    startActivity<ImportReplaceRuleActivity>("source" to it)
+                    startActivity<ImportReplaceRuleActivity> {
+                        putExtra("source", it)
+                    }
                 }
             }
             exportRequestCode -> if (resultCode == RESULT_OK) {

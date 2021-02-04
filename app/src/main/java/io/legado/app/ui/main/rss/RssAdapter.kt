@@ -10,8 +10,7 @@ import io.legado.app.base.adapter.RecyclerAdapter
 import io.legado.app.data.entities.RssSource
 import io.legado.app.databinding.ItemRssBinding
 import io.legado.app.help.ImageLoader
-import org.jetbrains.anko.sdk27.coroutines.onClick
-import org.jetbrains.anko.sdk27.coroutines.onLongClick
+import splitties.views.onLongClick
 
 class RssAdapter(context: Context, val callBack: CallBack) :
     RecyclerAdapter<RssSource, ItemRssBinding>(context) {
@@ -38,12 +37,12 @@ class RssAdapter(context: Context, val callBack: CallBack) :
 
     override fun registerListener(holder: ItemViewHolder, binding: ItemRssBinding) {
         binding.apply {
-            root.onClick {
+            root.setOnClickListener {
                 getItemByLayoutPosition(holder.layoutPosition)?.let {
                     callBack.openRss(it)
                 }
             }
-            root.onLongClick(returnValue = true) {
+            root.onLongClick {
                 getItemByLayoutPosition(holder.layoutPosition)?.let {
                     showMenu(ivIcon, it)
                 }

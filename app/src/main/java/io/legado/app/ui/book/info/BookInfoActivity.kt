@@ -51,8 +51,7 @@ class BookInfoActivity :
     private val requestCodeInfoEdit = 562
     private val requestCodeRead = 432
 
-    override val viewModel: BookInfoViewModel
-            by viewModels()
+    override val viewModel: BookInfoViewModel by viewModels()
 
     override fun getViewBinding(): ActivityBookInfoBinding {
         return ActivityBookInfoBinding.inflate(layoutInflater)
@@ -97,7 +96,7 @@ class BookInfoActivity :
                 viewModel.bookData.value?.let {
                     val bookJson = GSON.toJson(it)
                     val shareStr = "${it.bookUrl}#$bookJson"
-                    shareWithQr(it.name, shareStr)
+                    shareWithQr(shareStr, it.name)
                 }
             }
             R.id.menu_refresh -> {

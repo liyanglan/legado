@@ -55,6 +55,7 @@ class AnalyzeUrl(
     private var charset: String? = null
     private var method = RequestMethod.GET
     private var proxy: String? = null
+    private var retry: Int = 0
 
     init {
         baseUrl = baseUrl.split(splitUrlRegex, 1)[0]
@@ -197,6 +198,7 @@ class AnalyzeUrl(
                 option.js?.let {
                     evalJS(it)
                 }
+                retry = option.retry
             }
         }
         headerMap[UA_NAME] ?: let {
@@ -302,13 +304,11 @@ class AnalyzeUrl(
             params.sourceRegex = sourceRegex
             params.postData = body?.toByteArray()
             params.tag = tag
-            return HttpHelper.ajax(params)
+            return getWebViewSrc(params)
         }
-        return getProxyClient(proxy).newCallStrResponse {
+        return getProxyClient(proxy).newCallStrResponse(retry) {
             removeHeader(UA_NAME)
-            headerMap.forEach {
-                addHeader(it.key, it.value)
-            }
+            addHeaders(headerMap)
             when (method) {
                 RequestMethod.POST -> {
                     url(url)
@@ -326,11 +326,9 @@ class AnalyzeUrl(
     suspend fun getByteArray(tag: String? = null): ByteArray {
         setCookie(tag)
         @Suppress("BlockingMethodInNonBlockingContext")
-        return getProxyClient(proxy).newCall {
+        return getProxyClient(proxy).newCall(retry) {
             removeHeader(UA_NAME)
-            headerMap.forEach {
-                addHeader(it.key, it.value)
-            }
+            addHeaders(headerMap)
             when (method) {
                 RequestMethod.POST -> {
                     url(url)
@@ -375,7 +373,8 @@ class AnalyzeUrl(
         val headers: Any?,
         val body: Any?,
         val type: String?,
-        val js: String?
+        val js: String?,
+        val retry: Int = 0
     )
 
 }

@@ -35,6 +35,16 @@ class BookInfoViewModel(application: Application) : BaseViewModel(application) {
         }
     }
 
+    fun refreshData(intent: Intent) {
+        execute {
+            val name = intent.getStringExtra("name") ?: ""
+            val author = intent.getStringExtra("author") ?: ""
+            appDb.bookDao.getBook(name, author)?.let { book ->
+                setBook(book)
+            }
+        }
+    }
+
     private fun setBook(book: Book) {
         durChapterIndex = book.durChapterIndex
         bookData.postValue(book)
@@ -235,7 +245,7 @@ class BookInfoViewModel(application: Application) : BaseViewModel(application) {
     fun delBook(deleteOriginal: Boolean = false, success: (() -> Unit)? = null) {
         execute {
             bookData.value?.let {
-                it.delete()
+                Book.delete(it)
                 inBookshelf = false
                 if (it.isLocalBook()) {
                     LocalBook.deleteBook(it, deleteOriginal)

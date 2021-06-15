@@ -90,6 +90,24 @@ object AppConfig : SharedPreferences.OnSharedPreferenceChangeListener {
     val screenOrientation: String?
         get() = appCtx.getPrefString(PreferKey.screenOrientation)
 
+    var bookGroupStyle: Int
+        get() = appCtx.getPrefInt(PreferKey.bookGroupStyle, 0)
+        set(value) {
+            appCtx.putPrefInt(PreferKey.bookGroupStyle, value)
+        }
+
+    var bookExportFileName: String?
+        get() = appCtx.getPrefString(PreferKey.bookExportFileName)
+        set(value) {
+            appCtx.putPrefString(PreferKey.bookExportFileName, value)
+        }
+
+    var bookImportFileName: String?
+        get() = appCtx.getPrefString(PreferKey.bookImportFileName)
+        set(value) {
+            appCtx.putPrefString(PreferKey.bookImportFileName, value)
+        }
+
     var backupPath: String?
         get() = appCtx.getPrefString(PreferKey.backupPath)
         set(value) {
@@ -100,7 +118,10 @@ object AppConfig : SharedPreferences.OnSharedPreferenceChangeListener {
             }
         }
 
-    val isShowRSS: Boolean
+    val showDiscovery: Boolean
+        get() = appCtx.getPrefBoolean(PreferKey.showDiscovery, true)
+
+    val showRSS: Boolean
         get() = appCtx.getPrefBoolean(PreferKey.showRss, true)
 
     val autoRefreshBook: Boolean

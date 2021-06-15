@@ -9,6 +9,7 @@
 * 漫画源看书显示乱码，**阅读与其他软件的源并不通用**，请导入阅读的支持的漫画源！
 
 **2021/06/15**
+* viewPager2 改回 viewPager
 * 添加配置导入文件规则功能 by bushixuanqi
 * 文件夹分组样式优化(未完成)
 
@@ -16,6 +17,18 @@
 * 添加自定义导出文件名
 * 添加书架文件夹分组样式,未完成
 * viewPager2 3层嵌套有问题,书架换回viewPager
+
+**2021/05/29**
+* 谷歌版可使用外部epub模板
+* Asset文件夹下二级以内目录全文件读取，Asset->文件夹->文件
+* epub元数据修改，使修改字体只对正文生效
+* 修复epub模板文件的排序问题
+* epub可自定义模板，模板路径为书籍导出目录的Asset文件夹，[模板范例](https://wwa.lanzoux.com/ibjBspkn05i)
+```
+Asset中里面必须有Text文件夹，Text文件夹里必须有chapter.html，否则导出正文会为空
+chapter.html的关键字有{title}、{content}
+其他html文件的关键字有{name}、{author}、{intro}、{kind}、{wordCount}
+```
 
 **2021/05/26**
 * 书签绑定书名与作者

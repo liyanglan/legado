@@ -1,16 +1,18 @@
 package io.legado.app.ui.main.explore
 
 import android.content.Context
-import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.PopupMenu
+import android.widget.TextView
+import androidx.core.view.children
 import com.google.android.flexbox.FlexboxLayout
 import io.legado.app.R
 import io.legado.app.base.adapter.ItemViewHolder
 import io.legado.app.base.adapter.RecyclerAdapter
 import io.legado.app.data.appDb
 import io.legado.app.data.entities.BookSource
+import io.legado.app.data.entities.ExploreKind
 import io.legado.app.databinding.ItemFilletTextBinding
 import io.legado.app.databinding.ItemFindBookBinding
 import io.legado.app.help.coroutine.Coroutine
@@ -24,6 +26,8 @@ import splitties.views.onLongClick
 
 class ExploreAdapter(context: Context, private val scope: CoroutineScope, val callBack: CallBack) :
     RecyclerAdapter<BookSource, ItemFindBookBinding>(context) {
+
+    private val recycler = arrayListOf<View>()
     private var exIndex = -1
     private var scrollTo = -1
 
@@ -56,32 +60,7 @@ class ExploreAdapter(context: Context, private val scope: CoroutineScope, val ca
                 Coroutine.async(scope) {
                     item.getExploreKinds()
                 }.onSuccess { kindList ->
-                    if (!kindList.isNullOrEmpty()) {
-                        flexbox.visible()
-                        flexbox.removeAllViews()
-                        kindList.map { kind ->
-                            val tv = ItemFilletTextBinding.inflate(
-                                LayoutInflater.from(context),
-                                flexbox,
-                                false
-                            ).root
-                            flexbox.addView(tv)
-                            tv.text = kind.title
-                            if (!kind.url.isNullOrEmpty()) {
-                                tv.setOnClickListener {
-                                    callBack.openExplore(
-                                        item.bookSourceUrl,
-                                        kind.title,
-                                        kind.url.toString()
-                                    )
-                                }
-                            }
-                            val lp = tv.layoutParams as FlexboxLayout.LayoutParams
-                            lp.let {
-
-                            }
-                        }
-                    }
+                    upKindList(flexbox, item.bookSourceUrl, kindList)
                 }.onFinally {
                     rotateLoading.hide()
                     if (scrollTo >= 0) {
@@ -90,11 +69,52 @@ class ExploreAdapter(context: Context, private val scope: CoroutineScope, val ca
                     }
                 }
             } else {
-                binding.ivStatus.setImageResource(R.drawable.ic_arrow_right)
-                binding.rotateLoading.hide()
-                binding.flexbox.gone()
+                ivStatus.setImageResource(R.drawable.ic_arrow_right)
+                rotateLoading.hide()
+                recyclerFlexbox(flexbox)
+                flexbox.gone()
             }
         }
+    }
+
+    private fun upKindList(flexbox: FlexboxLayout, sourceUrl: String, kinds: List<ExploreKind>) {
+        if (!kinds.isNullOrEmpty()) {
+            recyclerFlexbox(flexbox)
+            flexbox.visible()
+            kinds.forEach { kind ->
+                val tv = getFlexboxChild(flexbox)
+                flexbox.addView(tv)
+                tv.text = kind.title
+                val lp = tv.layoutParams as FlexboxLayout.LayoutParams
+                kind.style().let { style ->
+                    lp.flexGrow = style.layout_flexGrow
+                    lp.flexShrink = style.layout_flexShrink
+                    lp.alignSelf = style.alignSelf()
+                    lp.flexBasisPercent = style.layout_flexBasisPercent
+                    lp.isWrapBefore = style.layout_wrapBefore
+                }
+                tv.setOnClickListener {
+                    callBack.openExplore(sourceUrl, kind.title, kind.url)
+                }
+            }
+        }
+    }
+
+    @Synchronized
+    private fun getFlexboxChild(flexbox: FlexboxLayout): TextView {
+        return if (recycler.isEmpty()) {
+            ItemFilletTextBinding.inflate(inflater, flexbox, false).root
+        } else {
+            recycler.last().also {
+                recycler.removeLast()
+            } as TextView
+        }
+    }
+
+    @Synchronized
+    private fun recyclerFlexbox(flexbox: FlexboxLayout) {
+        recycler.addAll(flexbox.children)
+        flexbox.removeAllViews()
     }
 
     override fun registerListener(holder: ItemViewHolder, binding: ItemFindBookBinding) {
@@ -151,7 +171,7 @@ class ExploreAdapter(context: Context, private val scope: CoroutineScope, val ca
 
     interface CallBack {
         fun scrollTo(pos: Int)
-        fun openExplore(sourceUrl: String, title: String, exploreUrl: String)
+        fun openExplore(sourceUrl: String, title: String, exploreUrl: String?)
         fun editSource(sourceUrl: String)
         fun toTop(source: BookSource)
     }
